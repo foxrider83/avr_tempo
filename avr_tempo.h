@@ -6,8 +6,6 @@
  */
 
 void setup(void);
-void start_tim1(void);
-void stop_tim1(void);
 void vibe(void);
 
 #define COUNTER_START 0x6000
@@ -26,3 +24,7 @@ void vibe(void);
 #define DDRVIB  DDRD
 #define PORTVIB PORTD
 #define VIBE    PORTD5
+
+// MACRO
+#define start_tim1  (TCCR1B |= (1<<CS12))
+#define stop_tim1   (TCCR1B &= ~(1<<CS12))

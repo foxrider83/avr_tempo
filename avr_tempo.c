@@ -6,7 +6,7 @@
  * Use Timer1 to count time with interrupt.
  * Two solution for counting :
  * - count from 0 to OCR1A
- * - preset TCNT1 and count until overflow
+ * - preset TCNT1 and count until overflow (easiest)
  */
 #define F_CPU 1000000UL
 #define dbg
@@ -19,30 +19,28 @@
 #include "avr_tempo.h"
 
 #define ovf
-//Status byte x x x x x delay run ovfb
+//Status byte x x x x x x delay ovfb
 uint8_t status;
-#define BDELAY  2
-#define BRUN    1
+#define BDELAY  1
 #define BOVF    0
-
 
 int main(void) {
     volatile uint8_t time_counter = 0;
     setup();
     //Start Timer1
-    start_tim1();
+    start_tim1;
     sei();
     vibe();
     while (1) {
         if (status & (1 << BOVF)){
             //Timer 1 overflow occurs
-            stop_tim1();
+            stop_tim1;
             TCNT1 = COUNTER_START;
             TIFR1 &= ~(TOV1);
             PORTHB ^= (1 << LEDHB);
             time_counter ++;
-            status &= ~(1 << BOVF); // reset overflow status
-            start_tim1();           
+            status &= ~(1 << BOVF);     // reset overflow status
+            start_tim1;           
         }
         if (time_counter >= DELAY){
             status |= (1 << BDELAY);    // Delay reached
@@ -51,13 +49,16 @@ int main(void) {
             vibe();
             status &= ~(1 << BDELAY); // reset status delay overflow.
             time_counter = 0;
+            stop_tim1;    // End of work
+            // Sleep mode until reset the microcontroller. POWER DOWN
+            SMCR |= (1 << SM1);
         }
-        
-
-        //PORTC ^= (1 << PINC0);
     }
 }
 
+/*
+ * Configuration of the microcontroller
+ */
 void setup(void){
     //Configure LED Heart Beat
     DDRHB |= (1 << LEDHB);
@@ -77,14 +78,9 @@ void setup(void){
     return;
 }
 
-void start_tim1(void){
-    TCCR1B |= (1<<CS12);
-}
-
-void stop_tim1(void){
-    TCCR1B &= ~(1<<CS12);
-}
-
+/*
+ *    Activate the vibrator
+ */
 void vibe(void){
     PORTVIB |= (1 << VIBE);
     _delay_ms(800);
@@ -93,8 +89,11 @@ void vibe(void){
     PORTVIB ^= (1 << VIBE);
     _delay_ms(500);
     PORTVIB &= ~(1 << VIBE);
-
 }
+
+/*
+ * Interrupts
+ */
 #if defined(ovf)
 ISR(TIMER1_OVF_vect){
     //volatile uint8_t sreg;
