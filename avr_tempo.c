@@ -9,7 +9,7 @@
  * - preset TCNT1 and count until overflow (easiest)
  */
 #define F_CPU 1000000UL
-#define dbg
+//#define dbg
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -19,18 +19,22 @@
 #include "avr_tempo.h"
 
 #define ovf
-//Status byte x x x x x x delay ovfb
+//Status byte x x x vib2 vib1 delaye delay ovfb
 uint8_t status;
+#define BVIB2   4
+#define BVIB1   3
+#define BDELAYE 2
 #define BDELAY  1
 #define BOVF    0
 
 int main(void) {
     volatile uint8_t time_counter = 0;
+    status = 0;
     setup();
+    vibe2();
+    sei();
     //Start Timer1
     start_tim1;
-    sei();
-    vibe();
     while (1) {
         if (status & (1 << BOVF)){
             //Timer 1 overflow occurs
@@ -43,13 +47,25 @@ int main(void) {
             start_tim1;           
         }
         if (time_counter >= DELAY){
-            status |= (1 << BDELAY);    // Delay reached
+            if ((status & (1 << BVIB1)) == 0){
+                status |= (1 << BDELAY);    // Delay reached            
+            }
+        }
+        if (time_counter >= DELAYEND){
+            status |= (1 << BDELAYE);
         }
         if (status & (1 << BDELAY)){
+            //First delay reached
             vibe();
-            status &= ~(1 << BDELAY); // reset status delay overflow.
+            status |= (1 << BVIB1);     // first vibration occured
+            status &= ~(1 << BDELAY);   // reset status delay overflow.
+        }
+        if (status & (1 << BDELAYE)){
+            stop_tim1;
+            vibe2();
+            //Last delay reached
             time_counter = 0;
-            stop_tim1;    // End of work
+            status &= ~(1<< BDELAYE);   // reset status delay end overflow
             // Sleep mode until reset the microcontroller. POWER DOWN
             SMCR |= (1 << SM1);
         }
@@ -91,6 +107,22 @@ void vibe(void){
     PORTVIB &= ~(1 << VIBE);
 }
 
+/*
+ *    Activate the vibrator for time up
+ */
+void vibe2(void){
+    PORTVIB |= (1 << VIBE);
+    _delay_ms(800);
+    PORTVIB &= ~(1 << VIBE);
+    _delay_ms(500);
+    PORTVIB |= (1 << VIBE);
+    _delay_ms(800);
+    PORTVIB &= ~(1 << VIBE);
+    _delay_ms(500);
+    PORTVIB |= (1 << VIBE);
+    _delay_ms(800);
+    PORTVIB &= ~(1 << VIBE);
+}
 /*
  * Interrupts
  */

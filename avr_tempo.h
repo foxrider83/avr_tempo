@@ -7,14 +7,21 @@
 
 void setup(void);
 void vibe(void);
+void vibe2(void);
 
 #define COUNTER_START 0x6000
 #define COUNTER_COMP 0x9896
 #if defined(dbg)
-    #define DELAY   3
+    #define DELAY   2
 #else
     #define DELAY   48  // 8 minutes
 #endif
+#if defined(dbg)
+    #define DELAYEND   5
+#else
+    #define DELAYEND   60  // 10 minutes
+#endif
+
 
 //Heart Beat LED
 #define DDRHB  DDRD
